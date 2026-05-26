@@ -1,5 +1,5 @@
 --// HAZEYWARE - Rivals Visual GUI
---// Dark Textures + Grey Sky Toggle
+--// Dark Textures + Grey Sky + Minimize
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
@@ -22,9 +22,10 @@ ScreenGui.Name = "HazeyVisuals"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
+-- Main GUI
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 260, 0, 180)
-Main.Position = UDim2.new(0.5, -130, 0.5, -90)
+Main.Size = UDim2.new(0, 270, 0, 190)
+Main.Position = UDim2.new(0.5, -135, 0.5, -95)
 Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
@@ -43,54 +44,104 @@ Title.BackgroundTransparency = 1
 Title.Text = "HAZEYWARE"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 22
-Title.TextColor3 = Color3.fromRGB(220,220,220)
+Title.TextColor3 = Color3.fromRGB(230,230,230)
 Title.Parent = Main
 
--- Dragging
-local dragging = false
-local dragInput
-local dragStart
-local startPos
+-- Minimize Button
+local Minimize = Instance.new("TextButton")
+Minimize.Size = UDim2.new(0,30,0,30)
+Minimize.Position = UDim2.new(1,-70,0,5)
+Minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
+Minimize.Text = "-"
+Minimize.Font = Enum.Font.GothamBold
+Minimize.TextSize = 20
+Minimize.TextColor3 = Color3.fromRGB(255,255,255)
+Minimize.Parent = Main
 
-local function update(input)
-	local delta = input.Position - dragStart
-	Main.Position = UDim2.new(
-		startPos.X.Scale,
-		startPos.X.Offset + delta.X,
-		startPos.Y.Scale,
-		startPos.Y.Offset + delta.Y
-	)
+Instance.new("UICorner", Minimize).CornerRadius = UDim.new(1,0)
+
+-- Close Button
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0,30,0,30)
+Close.Position = UDim2.new(1,-35,0,5)
+Close.BackgroundColor3 = Color3.fromRGB(120,40,40)
+Close.Text = "X"
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 18
+Close.TextColor3 = Color3.fromRGB(255,255,255)
+Close.Parent = Main
+
+Instance.new("UICorner", Close).CornerRadius = UDim.new(1,0)
+
+-- Compact Button
+local Compact = Instance.new("TextButton")
+Compact.Size = UDim2.new(0,70,0,70)
+Compact.Position = UDim2.new(0.5,-35,0.5,-35)
+Compact.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Compact.Visible = false
+Compact.Text = "HAZEY"
+Compact.Font = Enum.Font.GothamBold
+Compact.TextSize = 16
+Compact.TextColor3 = Color3.fromRGB(255,255,255)
+Compact.Parent = ScreenGui
+
+Instance.new("UICorner", Compact).CornerRadius = UDim.new(0,18)
+
+local CompactStroke = Instance.new("UIStroke")
+CompactStroke.Color = Color3.fromRGB(120,120,120)
+CompactStroke.Parent = Compact
+
+-- Dragging Function
+local function makeDraggable(frame, dragArea)
+	local dragging = false
+	local dragInput
+	local dragStart
+	local startPos
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+
+	dragArea.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	dragArea.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
 end
 
-Title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = Main.Position
+makeDraggable(Main, Title)
+makeDraggable(Compact, Compact)
 
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-Title.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement
-	or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
-	end
-end)
-
--- Toggle creator
+-- Toggle Creator
 local function CreateToggle(text, yPos)
 	local Holder = Instance.new("Frame")
 	Holder.Size = UDim2.new(1,-20,0,45)
@@ -130,18 +181,10 @@ local function CreateToggle(text, yPos)
 
 		if enabled then
 			Toggle.Text = "ON"
-			TweenService:Create(
-				Toggle,
-				TweenInfo.new(0.2),
-				{BackgroundColor3 = Color3.fromRGB(120,120,120)}
-			):Play()
+			Toggle.BackgroundColor3 = Color3.fromRGB(120,120,120)
 		else
 			Toggle.Text = "OFF"
-			TweenService:Create(
-				Toggle,
-				TweenInfo.new(0.2),
-				{BackgroundColor3 = Color3.fromRGB(50,50,50)}
-			):Play()
+			Toggle.BackgroundColor3 = Color3.fromRGB(50,50,50)
 		end
 
 		return enabled
@@ -152,12 +195,14 @@ end
 local DarkToggle, DarkSwitch = CreateToggle("Dark Textures", 55)
 
 local originalColors = {}
+local darkEnabled = false
 
 local function setDarkTextures(state)
+	darkEnabled = state
+
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") then
 
-			-- Ignore tools/items/characters
 			if obj.Parent:FindFirstChildOfClass("Humanoid")
 			or obj.Parent:IsA("Tool") then
 				continue
@@ -169,10 +214,11 @@ local function setDarkTextures(state)
 
 			if state then
 				local c = originalColors[obj]
+
 				obj.Color = Color3.new(
-					c.R * 0.45,
-					c.G * 0.45,
-					c.B * 0.45
+					math.clamp(c.R * 0.45, 0, 1),
+					math.clamp(c.G * 0.45, 0, 1),
+					math.clamp(c.B * 0.45, 0, 1)
 				)
 			else
 				obj.Color = originalColors[obj]
@@ -182,37 +228,75 @@ local function setDarkTextures(state)
 end
 
 DarkToggle.MouseButton1Click:Connect(function()
-	local state = DarkSwitch()
-	setDarkTextures(state)
+	setDarkTextures(DarkSwitch())
 end)
 
 -- GREY SKY
 local SkyToggle, SkySwitch = CreateToggle("Grey Sky", 110)
 
+local originalBrightness = Lighting.Brightness
 local originalAmbient = Lighting.Ambient
 local originalOutdoor = Lighting.OutdoorAmbient
+local originalClock = Lighting.ClockTime
 local originalFog = Lighting.FogColor
 
-local skybox = Lighting:FindFirstChildOfClass("Sky")
+local skyEnabled = false
 
-SkyToggle.MouseButton1Click:Connect(function()
-	local state = SkySwitch()
+local function setGreySky(state)
+	skyEnabled = state
 
 	if state then
-		Lighting.Ambient = Color3.fromRGB(156,133,131)
-		Lighting.OutdoorAmbient = Color3.fromRGB(156,133,131)
-		Lighting.FogColor = Color3.fromRGB(156,133,131)
+		local grey = Color3.fromRGB(156,133,131)
 
-		if skybox then
-			skybox.Parent = nil
+		Lighting.Ambient = grey
+		Lighting.OutdoorAmbient = grey
+		Lighting.FogColor = grey
+		Lighting.ColorShift_Top = grey
+		Lighting.ColorShift_Bottom = grey
+		Lighting.ClockTime = 14
+		Lighting.Brightness = 1
+
+		-- Force remove all skyboxes
+		for _, v in ipairs(Lighting:GetChildren()) do
+			if v:IsA("Sky") then
+				v.Parent = nil
+			end
 		end
+
 	else
+		Lighting.Brightness = originalBrightness
 		Lighting.Ambient = originalAmbient
 		Lighting.OutdoorAmbient = originalOutdoor
+		Lighting.ClockTime = originalClock
 		Lighting.FogColor = originalFog
-
-		if skybox and not skybox.Parent then
-			skybox.Parent = Lighting
-		end
+		Lighting.ColorShift_Top = Color3.new(0,0,0)
+		Lighting.ColorShift_Bottom = Color3.new(0,0,0)
 	end
+end
+
+SkyToggle.MouseButton1Click:Connect(function()
+	setGreySky(SkySwitch())
+end)
+
+-- MINIMIZE
+Minimize.MouseButton1Click:Connect(function()
+	Main.Visible = false
+	Compact.Visible = true
+end)
+
+Compact.MouseButton1Click:Connect(function()
+	Main.Visible = true
+	Compact.Visible = false
+end)
+
+-- CLOSE
+Close.MouseButton1Click:Connect(function()
+
+	-- Restore textures
+	setDarkTextures(false)
+
+	-- Restore lighting
+	setGreySky(false)
+
+	ScreenGui:Destroy()
 end)
