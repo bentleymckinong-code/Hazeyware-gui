@@ -1,5 +1,5 @@
 --// HAZEYWARE - Rivals Visual GUI
---// Dark Textures + Grey Sky + Minimize
+--// Dark Textures + Forced Grey Sky + Minimize
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
@@ -30,7 +30,7 @@ Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
 
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 14)
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,14)
 
 local Stroke = Instance.new("UIStroke")
 Stroke.Color = Color3.fromRGB(90,90,90)
@@ -100,6 +100,7 @@ local function makeDraggable(frame, dragArea)
 	local startPos
 
 	local function update(input)
+
 		local delta = input.Position - dragStart
 
 		frame.Position = UDim2.new(
@@ -120,6 +121,7 @@ local function makeDraggable(frame, dragArea)
 			startPos = frame.Position
 
 			input.Changed:Connect(function()
+
 				if input.UserInputState == Enum.UserInputState.End then
 					dragging = false
 				end
@@ -210,7 +212,6 @@ local function setDarkTextures(state)
 
 		if obj:IsA("BasePart") then
 
-			-- Ignore players/tools/items
 			if obj.Parent:FindFirstChildOfClass("Humanoid")
 			or obj.Parent:IsA("Tool") then
 				continue
@@ -251,47 +252,72 @@ local originalOutdoor = Lighting.OutdoorAmbient
 local originalClock = Lighting.ClockTime
 local originalFog = Lighting.FogColor
 
+local greyEnabled = false
+
+local function applyGrey()
+
+	local grey = Color3.fromRGB(156,133,131)
+
+	Lighting.Ambient = grey
+	Lighting.OutdoorAmbient = grey
+	Lighting.FogColor = grey
+	Lighting.ColorShift_Top = grey
+	Lighting.ColorShift_Bottom = grey
+	Lighting.ClockTime = 14
+	Lighting.Brightness = 0.7
+	Lighting.ExposureCompensation = -0.2
+
+	-- Remove sky/effects
+	for _, v in ipairs(Lighting:GetDescendants()) do
+
+		if v:IsA("Sky") then
+			v:Destroy()
+		end
+
+		if v:IsA("Atmosphere")
+		or v:IsA("BloomEffect")
+		or v:IsA("SunRaysEffect")
+		or v:IsA("DepthOfFieldEffect") then
+
+			v.Enabled = false
+		end
+	end
+
+	-- Grey tint
+	local cc = Lighting:FindFirstChild("HazeyGrey")
+
+	if not cc then
+		cc = Instance.new("ColorCorrectionEffect")
+		cc.Name = "HazeyGrey"
+		cc.Parent = Lighting
+	end
+
+	cc.TintColor = grey
+	cc.Saturation = -0.3
+	cc.Contrast = 0.1
+	cc.Brightness = -0.05
+	cc.Enabled = true
+end
+
 local function setGreySky(state)
+
+	greyEnabled = state
 
 	if state then
 
-		local grey = Color3.fromRGB(156,133,131)
+		applyGrey()
 
-		Lighting.Ambient = grey
-		Lighting.OutdoorAmbient = grey
-		Lighting.FogColor = grey
-		Lighting.ColorShift_Top = grey
-		Lighting.ColorShift_Bottom = grey
-		Lighting.ClockTime = 15
-		Lighting.Brightness = 0.8
+		task.spawn(function()
 
-		-- Remove skyboxes
-		for _, v in ipairs(Lighting:GetChildren()) do
-			if v:IsA("Sky") then
-				v:Destroy()
+			while greyEnabled do
+				applyGrey()
+				task.wait(1)
 			end
-		end
-
-		-- Disable effects
-		for _, v in ipairs(Lighting:GetDescendants()) do
-			if v:IsA("Atmosphere")
-			or v:IsA("BloomEffect")
-			or v:IsA("SunRaysEffect")
-			or v:IsA("ColorCorrectionEffect") then
-
-				v.Enabled = false
-			end
-		end
-
-		-- Grey tint
-		local cc = Instance.new("ColorCorrectionEffect")
-		cc.Name = "HazeyGrey"
-		cc.TintColor = grey
-		cc.Saturation = -0.2
-		cc.Contrast = 0.05
-		cc.Parent = Lighting
+		end)
 
 	else
+
+		greyEnabled = false
 
 		Lighting.Brightness = originalBrightness
 		Lighting.Ambient = originalAmbient
@@ -300,21 +326,12 @@ local function setGreySky(state)
 		Lighting.FogColor = originalFog
 		Lighting.ColorShift_Top = Color3.new(0,0,0)
 		Lighting.ColorShift_Bottom = Color3.new(0,0,0)
+		Lighting.ExposureCompensation = 0
 
-		for _, v in ipairs(Lighting:GetDescendants()) do
-			if v:IsA("Atmosphere")
-			or v:IsA("BloomEffect")
-			or v:IsA("SunRaysEffect")
-			or v:IsA("ColorCorrectionEffect") then
+		local cc = Lighting:FindFirstChild("HazeyGrey")
 
-				v.Enabled = true
-			end
-		end
-
-		local greyEffect = Lighting:FindFirstChild("HazeyGrey")
-
-		if greyEffect then
-			greyEffect:Destroy()
+		if cc then
+			cc:Destroy()
 		end
 	end
 end
@@ -337,10 +354,7 @@ end)
 -- Close
 Close.MouseButton1Click:Connect(function()
 
-	-- Restore textures
 	setDarkTextures(false)
-
-	-- Restore sky
 	setGreySky(false)
 
 	ScreenGui:Destroy()
