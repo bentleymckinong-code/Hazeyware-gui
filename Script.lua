@@ -22,7 +22,7 @@ ScreenGui.Name = "HazeyVisuals"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- Main GUI
+-- Main
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 270, 0, 190)
 Main.Position = UDim2.new(0.5, -135, 0.5, -95)
@@ -47,7 +47,7 @@ Title.TextSize = 22
 Title.TextColor3 = Color3.fromRGB(230,230,230)
 Title.Parent = Main
 
--- Minimize Button
+-- Minimize
 local Minimize = Instance.new("TextButton")
 Minimize.Size = UDim2.new(0,30,0,30)
 Minimize.Position = UDim2.new(1,-70,0,5)
@@ -60,7 +60,7 @@ Minimize.Parent = Main
 
 Instance.new("UICorner", Minimize).CornerRadius = UDim.new(1,0)
 
--- Close Button
+-- Close
 local Close = Instance.new("TextButton")
 Close.Size = UDim2.new(0,30,0,30)
 Close.Position = UDim2.new(1,-35,0,5)
@@ -91,8 +91,9 @@ local CompactStroke = Instance.new("UIStroke")
 CompactStroke.Color = Color3.fromRGB(120,120,120)
 CompactStroke.Parent = Compact
 
--- Dragging Function
+-- Dragging
 local function makeDraggable(frame, dragArea)
+
 	local dragging = false
 	local dragInput
 	local dragStart
@@ -100,6 +101,7 @@ local function makeDraggable(frame, dragArea)
 
 	local function update(input)
 		local delta = input.Position - dragStart
+
 		frame.Position = UDim2.new(
 			startPos.X.Scale,
 			startPos.X.Offset + delta.X,
@@ -109,6 +111,7 @@ local function makeDraggable(frame, dragArea)
 	end
 
 	dragArea.InputBegan:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
 
@@ -125,13 +128,16 @@ local function makeDraggable(frame, dragArea)
 	end)
 
 	dragArea.InputChanged:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseMovement
 		or input.UserInputType == Enum.UserInputType.Touch then
+
 			dragInput = input
 		end
 	end)
 
 	UserInputService.InputChanged:Connect(function(input)
+
 		if input == dragInput and dragging then
 			update(input)
 		end
@@ -143,6 +149,7 @@ makeDraggable(Compact, Compact)
 
 -- Toggle Creator
 local function CreateToggle(text, yPos)
+
 	local Holder = Instance.new("Frame")
 	Holder.Size = UDim2.new(1,-20,0,45)
 	Holder.Position = UDim2.new(0,10,0,yPos)
@@ -177,6 +184,7 @@ local function CreateToggle(text, yPos)
 	local enabled = false
 
 	return Toggle, function()
+
 		enabled = not enabled
 
 		if enabled then
@@ -195,14 +203,14 @@ end
 local DarkToggle, DarkSwitch = CreateToggle("Dark Textures", 55)
 
 local originalColors = {}
-local darkEnabled = false
 
 local function setDarkTextures(state)
-	darkEnabled = state
 
 	for _, obj in ipairs(workspace:GetDescendants()) do
+
 		if obj:IsA("BasePart") then
 
+			-- Ignore players/tools/items
 			if obj.Parent:FindFirstChildOfClass("Humanoid")
 			or obj.Parent:IsA("Tool") then
 				continue
@@ -213,6 +221,7 @@ local function setDarkTextures(state)
 			end
 
 			if state then
+
 				local c = originalColors[obj]
 
 				obj.Color = Color3.new(
@@ -220,7 +229,9 @@ local function setDarkTextures(state)
 					math.clamp(c.G * 0.45, 0, 1),
 					math.clamp(c.B * 0.45, 0, 1)
 				)
+
 			else
+
 				obj.Color = originalColors[obj]
 			end
 		end
@@ -240,12 +251,10 @@ local originalOutdoor = Lighting.OutdoorAmbient
 local originalClock = Lighting.ClockTime
 local originalFog = Lighting.FogColor
 
-local skyEnabled = false
-
 local function setGreySky(state)
-	skyEnabled = state
 
 	if state then
+
 		local grey = Color3.fromRGB(156,133,131)
 
 		Lighting.Ambient = grey
@@ -253,17 +262,37 @@ local function setGreySky(state)
 		Lighting.FogColor = grey
 		Lighting.ColorShift_Top = grey
 		Lighting.ColorShift_Bottom = grey
-		Lighting.ClockTime = 14
-		Lighting.Brightness = 1
+		Lighting.ClockTime = 15
+		Lighting.Brightness = 0.8
 
-		-- Force remove all skyboxes
+		-- Remove skyboxes
 		for _, v in ipairs(Lighting:GetChildren()) do
 			if v:IsA("Sky") then
-				v.Parent = nil
+				v:Destroy()
 			end
 		end
 
+		-- Disable effects
+		for _, v in ipairs(Lighting:GetDescendants()) do
+			if v:IsA("Atmosphere")
+			or v:IsA("BloomEffect")
+			or v:IsA("SunRaysEffect")
+			or v:IsA("ColorCorrectionEffect") then
+
+				v.Enabled = false
+			end
+		end
+
+		-- Grey tint
+		local cc = Instance.new("ColorCorrectionEffect")
+		cc.Name = "HazeyGrey"
+		cc.TintColor = grey
+		cc.Saturation = -0.2
+		cc.Contrast = 0.05
+		cc.Parent = Lighting
+
 	else
+
 		Lighting.Brightness = originalBrightness
 		Lighting.Ambient = originalAmbient
 		Lighting.OutdoorAmbient = originalOutdoor
@@ -271,6 +300,22 @@ local function setGreySky(state)
 		Lighting.FogColor = originalFog
 		Lighting.ColorShift_Top = Color3.new(0,0,0)
 		Lighting.ColorShift_Bottom = Color3.new(0,0,0)
+
+		for _, v in ipairs(Lighting:GetDescendants()) do
+			if v:IsA("Atmosphere")
+			or v:IsA("BloomEffect")
+			or v:IsA("SunRaysEffect")
+			or v:IsA("ColorCorrectionEffect") then
+
+				v.Enabled = true
+			end
+		end
+
+		local greyEffect = Lighting:FindFirstChild("HazeyGrey")
+
+		if greyEffect then
+			greyEffect:Destroy()
+		end
 	end
 end
 
@@ -278,7 +323,7 @@ SkyToggle.MouseButton1Click:Connect(function()
 	setGreySky(SkySwitch())
 end)
 
--- MINIMIZE
+-- Minimize
 Minimize.MouseButton1Click:Connect(function()
 	Main.Visible = false
 	Compact.Visible = true
@@ -289,13 +334,13 @@ Compact.MouseButton1Click:Connect(function()
 	Compact.Visible = false
 end)
 
--- CLOSE
+-- Close
 Close.MouseButton1Click:Connect(function()
 
 	-- Restore textures
 	setDarkTextures(false)
 
-	-- Restore lighting
+	-- Restore sky
 	setGreySky(false)
 
 	ScreenGui:Destroy()
