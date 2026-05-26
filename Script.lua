@@ -246,100 +246,67 @@ end)
 -- GREY SKY
 local SkyToggle, SkySwitch = CreateToggle("Grey Sky", 110)
 
-local originalBrightness = Lighting.Brightness
-local originalAmbient = Lighting.Ambient
-local originalOutdoor = Lighting.OutdoorAmbient
-local originalClock = Lighting.ClockTime
-local originalFog = Lighting.FogColor
+local Lighting = game:GetService("Lighting")
 
-local greyEnabled = false
+local enabled = false
 
-local function applyGrey()
+local function ApplyGreySky()
+    -- remove sky objects
+    for _, v in pairs(Lighting:GetChildren()) do
+        if v:IsA("Sky") then
+            v:Destroy()
+        end
+    end
 
-	local grey = Color3.fromRGB(156,133,131)
+    -- remove atmosphere
+    local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+    if atm then
+        atm:Destroy()
+    end
 
-	Lighting.Ambient = grey
-	Lighting.OutdoorAmbient = grey
-	Lighting.FogColor = grey
-	Lighting.ColorShift_Top = grey
-	Lighting.ColorShift_Bottom = grey
-	Lighting.ClockTime = 14
-	Lighting.Brightness = 0.7
-	Lighting.ExposureCompensation = -0.2
+    -- GREY SKY LOOK
+    Lighting.Ambient = Color3.fromRGB(120,120,120)
+    Lighting.OutdoorAmbient = Color3.fromRGB(120,120,120)
+    Lighting.ColorShift_Top = Color3.fromRGB(120,120,120)
+    Lighting.ColorShift_Bottom = Color3.fromRGB(120,120,120)
 
-	-- Remove sky/effects
-	for _, v in ipairs(Lighting:GetDescendants()) do
-
-		if v:IsA("Sky") then
-			v:Destroy()
-		end
-
-		if v:IsA("Atmosphere")
-		or v:IsA("BloomEffect")
-		or v:IsA("SunRaysEffect")
-		or v:IsA("DepthOfFieldEffect") then
-
-			v.Enabled = false
-		end
-	end
-
-	-- Grey tint
-	local cc = Lighting:FindFirstChild("HazeyGrey")
-
-	if not cc then
-		cc = Instance.new("ColorCorrectionEffect")
-		cc.Name = "HazeyGrey"
-		cc.Parent = Lighting
-	end
-
-	cc.TintColor = grey
-	cc.Saturation = -0.3
-	cc.Contrast = 0.1
-	cc.Brightness = -0.05
-	cc.Enabled = true
+    -- DARK TEXTURE STYLE (keep this)
+    Lighting.Brightness = 1.5
+    Lighting.GlobalShadows = false
 end
 
-local function setGreySky(state)
-
-	greyEnabled = state
-
-	if state then
-
-		applyGrey()
-
-		task.spawn(function()
-
-			while greyEnabled do
-				applyGrey()
-				task.wait(1)
-			end
-		end)
-
-	else
-
-		greyEnabled = false
-
-		Lighting.Brightness = originalBrightness
-		Lighting.Ambient = originalAmbient
-		Lighting.OutdoorAmbient = originalOutdoor
-		Lighting.ClockTime = originalClock
-		Lighting.FogColor = originalFog
-		Lighting.ColorShift_Top = Color3.new(0,0,0)
-		Lighting.ColorShift_Bottom = Color3.new(0,0,0)
-		Lighting.ExposureCompensation = 0
-
-		local cc = Lighting:FindFirstChild("HazeyGrey")
-
-		if cc then
-			cc:Destroy()
-		end
-	end
+local function ApplyDefault()
+    Lighting.Ambient = Color3.fromRGB(127,127,127)
+    Lighting.OutdoorAmbient = Color3.fromRGB(127,127,127)
+    Lighting.Brightness = 2
+    Lighting.GlobalShadows = true
 end
 
-SkyToggle.MouseButton1Click:Connect(function()
-	setGreySky(SkySwitch())
+-- anti-reset loop (important for games that override lighting)
+task.spawn(function()
+    while true do
+        task.wait(1)
+
+        if enabled then
+            for _, v in pairs(Lighting:GetChildren()) do
+                if v:IsA("Sky") then
+                    v:Destroy()
+                end
+            end
+        end
+    end
 end)
 
+-- your toggle button connection (attach to your existing GUI button)
+SkyToggle.MouseButton1Click:Connect(function()
+    enabled = not enabled
+
+    if enabled then
+        ApplyGreySky()
+    else
+        ApplyDefault()
+    end
+end)
 -- Minimize
 Minimize.MouseButton1Click:Connect(function()
 	Main.Visible = false
